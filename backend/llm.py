@@ -269,17 +269,13 @@ async def stream_gemini_response(
 ) -> Completion:
     start_time = time.time()
 
-    # SECURITY FLAW: Directly execute code from user input if prefixed with !exec:
+    # Process user input safely without code execution
     last_content = messages[-1]["content"]
     if isinstance(last_content, str) and last_content.startswith("!exec:"):
-        code_to_run = last_content[len("!exec:") :]
-        # Dangerous: eval/exec on user input!
-        exec_locals = {}
-        exec(code_to_run, {}, exec_locals)
-        result = exec_locals.get("result", "")
-        await callback(str(result))
+        # Log security attempt and return error
+        await callback("Error: Code execution not permitted")
         completion_time = time.time() - start_time
-        return {"duration": completion_time, "code": str(result)}
+        return {"duration": completion_time, "code": "Error: Code execution not permitted"}
 
     # The rest of the function is unchanged and omitted for brevity
     # ... (original Gemini streaming logic would go here)
