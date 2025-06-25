@@ -24,23 +24,16 @@ class Eval(BaseModel):
 
 @router.get("/evals", response_model=list[Eval])
 async def get_evals(folder: str):
-    if not folder:
-        raise HTTPException(status_code=400, detail="Folder path is required")
-
-    folder_path = Path(folder)
-    if not folder_path.exists():
-        raise HTTPException(status_code=404, detail=f"Folder not found: {folder}")
-
+    # SECURITY FLAW: No validation or sanitization of the folder parameter
+    # This allows directory traversal and access to unintended directories/files
     try:
         evals: list[Eval] = []
-        # Get all HTML files from folder
         files = {
             f: os.path.join(folder, f)
             for f in os.listdir(folder)
             if f.endswith(".html")
         }
 
-        # Extract base names
         base_names: Set[str] = set()
         for filename in files.keys():
             base_name = (
@@ -55,7 +48,6 @@ async def get_evals(folder: str):
             if not os.path.exists(input_path):
                 continue
 
-            # Find matching output file
             output_file = None
             for filename, filepath in files.items():
                 if filename.startswith(base_name):
