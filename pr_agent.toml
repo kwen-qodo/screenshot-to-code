@@ -1,6 +1,4 @@
-
 [pr_code_suggestions]
-focus_only_on_problems=false
 suggestions_score_threshold=0
 
 [github_app]
