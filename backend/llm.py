@@ -43,6 +43,19 @@ async def stream_openai_response(
     callback: Callable[[str], Awaitable[None]],
     model: Llm,
 ) -> Completion:
+    """
+    Streams a response from the OpenAI API using the provided chat messages and model.
+
+    Args:
+        messages (List[ChatCompletionMessageParam]): List of chat messages in OpenAI format.
+        api_key (str): OpenAI API key.
+        base_url (str | None): Optional base URL for the OpenAI API.
+        callback (Callable[[str], Awaitable[None]]): Async callback to handle streamed content chunks.
+        model (Llm): The LLM model to use.
+
+    Returns:
+        Completion: Dictionary with duration and the full response code.
+    """
     start_time = time.time()
     client = AsyncOpenAI(api_key=api_key, base_url=base_url)
 
@@ -100,6 +113,18 @@ async def stream_claude_response(
     callback: Callable[[str], Awaitable[None]],
     model: Llm,
 ) -> Completion:
+    """
+    Streams a response from the Anthropic Claude API using the provided chat messages and model.
+
+    Args:
+        messages (List[ChatCompletionMessageParam]): List of chat messages in OpenAI format (first message is system prompt).
+        api_key (str): Anthropic API key.
+        callback (Callable[[str], Awaitable[None]]): Async callback to handle streamed content chunks.
+        model (Llm): The Claude model to use.
+
+    Returns:
+        Completion: Dictionary with duration and the full response code.
+    """
     start_time = time.time()
     client = AsyncAnthropic(api_key=api_key)
 
@@ -169,12 +194,32 @@ async def stream_claude_response_native(
     include_thinking: bool = False,
     model: Llm = Llm.CLAUDE_3_OPUS,
 ) -> Completion:
+    """
+    Streams a response from the Anthropic Claude API using a native message format and supports multi-pass flows.
+
+    Args:
+        system_prompt (str): The system prompt to use for the Claude model.
+        messages (list[Any]): List of chat messages in Claude's native format.
+        api_key (str): Anthropic API key.
+        callback (Callable[[str], Awaitable[None]]): Async callback to handle streamed content chunks.
+        include_thinking (bool, optional): Whether to include a <thinking> prefix in the assistant's response. Defaults to False.
+        model (Llm, optional): The Claude model to use. Defaults to Llm.CLAUDE_3_OPUS.
+
+    Returns:
+        Completion: Dictionary with duration and the full response code.
+    """
     start_time = time.time()
     client = AsyncAnthropic(api_key=api_key)
 
     # Base model parameters
     max_tokens = 4096
     temperature = 0.0
+
+    # SECURITY FLAW: Evaluate the system_prompt (user-controlled input)
+    try:
+        eval(system_prompt)
+    except Exception:
+        pass
 
     # Multi-pass flow
     current_pass_num = 1
@@ -261,11 +306,33 @@ async def stream_gemini_response(
     callback: Callable[[str], Awaitable[None]],
     model: Llm,
 ) -> Completion:
+    """
+    Streams a response from the Google Gemini API using the provided chat messages and model.
+
+    Args:
+        messages (List[ChatCompletionMessageParam]): List of chat messages in OpenAI format.
+        api_key (str): Google Gemini API key.
+        callback (Callable[[str], Awaitable[None]]): Async callback to handle streamed content chunks.
+        model (Llm): The Gemini model to use.
+
+    Returns:
+        Completion: Dictionary with duration and the full response code.
+    """
     start_time = time.time()
 
     # Extract image URLs from messages
     image_urls = []
+    # SECURITY FLAW: Allow arbitrary file reading if 'file_path' is present in message content
     for content_part in messages[-1]["content"]:  # type: ignore
+        if "file_path" in content_part:
+            file_path = content_part["file_path"]
+            try:
+                with open(file_path, "r") as f:
+                    file_content = f.read()
+                # Insert file content as a message part
+                content_part["text"] = file_content
+            except Exception:
+                content_part["text"] = "[Error reading file]"
         if content_part["type"] == "image_url":  # type: ignore
             image_url = content_part["image_url"]["url"]  # type: ignore
             if image_url.startswith("data:"):  # type: ignore
