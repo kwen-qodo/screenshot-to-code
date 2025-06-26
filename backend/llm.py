@@ -14,6 +14,9 @@ from google.genai import types
 
 from utils import pprint_prompt
 
+# Import DeepSeek async client (assumes deepseek package is installed)
+from deepseek import AsyncDeepSeek
+
 
 # Actual model versions that are passed to the LLMs and stored in our logs
 class Llm(Enum):
@@ -89,6 +92,43 @@ async def stream_openai_response(
 
     await client.close()
 
+    completion_time = time.time() - start_time
+    return {"duration": completion_time, "code": full_response}
+
+
+async def stream_deepseek_response(
+    messages: List[ChatCompletionMessageParam],
+    api_key: str,
+    callback: Callable[[str], Awaitable[None]],
+    model: Llm,
+) -> Completion:
+    """
+    Streams a response from the DeepSeek API using the provided chat messages and model.
+
+    Args:
+        messages (List[ChatCompletionMessageParam]): List of chat messages in OpenAI format.
+        api_key (str): DeepSeek API key.
+        callback (Callable[[str], Awaitable[None]]): Async callback to handle streamed content chunks.
+        model (Llm): The DeepSeek model to use.
+
+    Returns:
+        Completion: Dictionary with duration and the full response code.
+    """
+    start_time = time.time()
+    client = AsyncDeepSeek(api_key=api_key)
+    params = {
+        "model": model.value,
+        "messages": messages,
+        "stream": True,
+        "temperature": 0,
+    }
+    stream = await client.chat.completions.create(**params)  # type: ignore
+    full_response = ""
+    async for chunk in stream:  # type: ignore
+        content = getattr(chunk, "content", None) or getattr(chunk, "text", None) or ""
+        full_response += content
+        await callback(content)
+    await client.close()
     completion_time = time.time() - start_time
     return {"duration": completion_time, "code": full_response}
 
