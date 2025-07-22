@@ -12,3 +12,12 @@ push_commands = [
     "/improve",
     "/review"
 ]
+
+[config]
+enable_custom_labels=true
+
+[custom_labels."Needs Human Review"]
+description = "Needs Human Review"
+
+[custom_labels."Auto-merged by Agent"]
+description = "This PR was automatically merged by the merge2close agent"
