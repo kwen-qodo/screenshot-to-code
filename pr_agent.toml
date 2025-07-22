@@ -19,5 +19,8 @@ enable_custom_labels=true
 [custom_labels."Needs Human Review"]
 description = "Needs Human Review"
 
-[custom_labels."Auto-merged by Agent"]
+[custom_labels."Auto-merged by Qodo m2c Agent"]
+description = "This PR was automatically merged by the merge2close agent"
+
+[custom_labels."Code Suggestions implemented by Qodo m2c Agent"]
 description = "This PR was automatically merged by the merge2close agent"
