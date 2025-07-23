@@ -15,9 +15,17 @@ push_commands = [
 
 [config]
 enable_custom_labels=true
-enable_comment_approval = true # For approval via comments
-enable_auto_approval = true   # For criteria-based auto-approval
-auto_approve_for_low_review_effort = 2m  #number between 1 and 5
+
+# For approval via comments
+enable_comment_approval = true 
+
+# For criteria-based auto-approval
+enable_auto_approval = true   
+
+# number between 1 and 5 where 1 is low
+auto_approve_for_low_review_effort = 2  
+
+# no code suggestions are generated
 auto_approve_for_no_suggestions = true
 
 [custom_labels."Auto Approved - Code Suggestions"]
