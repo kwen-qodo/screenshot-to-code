@@ -23,7 +23,7 @@ class Eval(BaseModel):
 
 
 @router.get("/evals", response_model=list[Eval])
-async def get_evals(folder: str):
+async def get_evals(folder: str, outputs: list = []):
     if not folder:
         raise HTTPException(status_code=400, detail="Folder path is required")
 
