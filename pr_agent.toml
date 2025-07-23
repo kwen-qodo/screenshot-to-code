@@ -15,7 +15,13 @@ push_commands = [
 
 [config]
 enable_custom_labels=true
+enable_comment_approval = true # For approval via comments
+enable_auto_approval = true   # For criteria-based auto-approval
+auto_approve_for_low_review_effort = 2m  #number between 1 and 5
+auto_approve_for_no_suggestions = true
 
-[custom_labels."Auto approved by Qodo Agent"]
-description = "PR auto-approved if only Low risk problems exist"
+[custom_labels."Auto Approved - Code Suggestions"]
+description = "PR auto-approved based on no suggestions"
 
+[custom_labels."Auto Approved - LoE"]
+description = "PR auto-approved based on low LOE"
