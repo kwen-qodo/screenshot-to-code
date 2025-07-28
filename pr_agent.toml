@@ -28,6 +28,10 @@ auto_approve_for_low_review_effort = 2
 # no code suggestions are generated
 auto_approve_for_no_suggestions = true
 
+# auto-approval for /review will not trigger here if no ticket is linked to the PR, 
+# or if the PR is not fully compliant with a linked ticket.
+ensure_ticket_compliance = true 
+
 [custom_labels."Auto Approved - Code Suggestions"]
 description = "PR auto-approved based on no suggestions"
 
