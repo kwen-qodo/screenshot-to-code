@@ -1,3 +1,10 @@
+"""
+FastAPI routes for evaluation management and execution.
+
+This module provides endpoints for managing and running evaluations on generated HTML outputs,
+including single folder evaluations, pairwise comparisons, and best-of-n evaluations.
+"""
+
 import os
 from fastapi import APIRouter, Query, Request, HTTPException
 from pydantic import BaseModel
@@ -18,12 +25,34 @@ N = 1
 
 
 class Eval(BaseModel):
+    """
+    Represents an evaluation with input image and corresponding HTML outputs.
+    
+    Attributes:
+        input: Base64-encoded data URL of the input image
+        outputs: List of HTML output strings to evaluate
+    """
     input: str
     outputs: list[str]
 
 
 @router.get("/evals", response_model=list[Eval])
 async def get_evals(folder: str):
+    """
+    Retrieve evaluations from a single folder containing HTML outputs.
+    
+    Matches HTML files with corresponding input images based on filename patterns.
+    Files are expected to follow the naming convention: {base_name}[_suffix].html
+    
+    Args:
+        folder: Path to folder containing HTML output files
+        
+    Returns:
+        List of Eval objects with input images and HTML outputs
+        
+    Raises:
+        HTTPException: If folder is missing, doesn't exist, or processing fails
+    """
     if not folder:
         raise HTTPException(status_code=400, detail="Folder path is required")
 
@@ -75,6 +104,14 @@ async def get_evals(folder: str):
 
 
 class PairwiseEvalResponse(BaseModel):
+    """
+    Response model for pairwise evaluation comparisons.
+    
+    Attributes:
+        evals: List of evaluations with two outputs each for comparison
+        folder1_name: Display name of the first folder
+        folder2_name: Display name of the second folder
+    """
     evals: list[Eval]
     folder1_name: str
     folder2_name: str
@@ -91,6 +128,19 @@ async def get_pairwise_evals(
         description="Absolute path to second folder",
     ),
 ):
+    """
+    Compare HTML outputs from two folders for pairwise evaluation.
+    
+    Finds HTML files with matching base names across both folders and creates
+    evaluations with two outputs each for side-by-side comparison.
+    
+    Args:
+        folder1: Path to first folder containing HTML outputs
+        folder2: Path to second folder containing HTML outputs
+        
+    Returns:
+        PairwiseEvalResponse with matched evaluations and folder names
+    """
     if not os.path.exists(folder1) or not os.path.exists(folder2):
         return {"error": "One or both folders do not exist"}
 
@@ -153,13 +203,31 @@ async def get_pairwise_evals(
 
 
 class RunEvalsRequest(BaseModel):
+    """
+    Request model for running evaluations on multiple models.
+    
+    Attributes:
+        models: List of model names to run evaluations on
+        stack: Technology stack to use for code generation
+    """
     models: List[str]
     stack: Stack
 
 
 @router.post("/run_evals", response_model=List[str])
 async def run_evals(request: RunEvalsRequest) -> List[str]:
-    """Run evaluations on all images in the inputs directory for multiple models"""
+    """
+    Execute evaluations on all input images using specified models.
+    
+    Processes all images in the inputs directory and generates HTML outputs
+    for each specified model using the given technology stack.
+    
+    Args:
+        request: RunEvalsRequest containing models and stack configuration
+        
+    Returns:
+        List of output file paths generated during evaluation
+    """
     all_output_files: List[str] = []
 
     for model in request.models:
@@ -171,6 +239,15 @@ async def run_evals(request: RunEvalsRequest) -> List[str]:
 
 @router.get("/models", response_model=Dict[str, List[str]])
 async def get_models():
+    """
+    Retrieve available models and technology stacks for evaluation.
+    
+    Filters out deprecated models and returns currently supported options
+    for running evaluations.
+    
+    Returns:
+        Dictionary containing lists of available models and stacks
+    """
     current_models = [
         model.value
         for model in Llm
@@ -181,19 +258,39 @@ async def get_models():
         and model != Llm.CLAUDE_3_HAIKU
     ]
 
-    # Import Stack type from prompts.types and get all literal values
+    # Get all available technology stacks
     available_stacks = list(Stack.__args__)
 
     return {"models": current_models, "stacks": available_stacks}
 
 
 class BestOfNEvalsResponse(BaseModel):
+    """
+    Response model for best-of-n evaluation comparisons.
+    
+    Attributes:
+        evals: List of evaluations with multiple outputs for comparison
+        folder_names: Display names of all folders being compared
+    """
     evals: list[Eval]
     folder_names: list[str]
 
 
 @router.get("/best-of-n-evals", response_model=BestOfNEvalsResponse)
 async def get_best_of_n_evals(request: Request):
+    """
+    Compare HTML outputs from multiple folders for best-of-n evaluation.
+    
+    Accepts dynamic query parameters (folder1, folder2, folder3, etc.) to
+    compare outputs from any number of folders. Only includes evaluations
+    where all folders have matching outputs.
+    
+    Args:
+        request: FastAPI Request object containing query parameters
+        
+    Returns:
+        BestOfNEvalsResponse with matched evaluations and folder names
+    """
     # Get all query parameters
     query_params = dict(request.query_params)
 
