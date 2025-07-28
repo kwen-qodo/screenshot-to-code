@@ -23,3 +23,9 @@ DEBUG_DIR = os.environ.get("DEBUG_DIR", "")
 # Set to True when running in production (on the hosted version)
 # Used as a feature flag to enable or disable certain features
 IS_PROD = os.environ.get("IS_PROD", False)
+
+# Session-related configuration
+SESSION_COOKIE_NAME = os.environ.get("SESSION_COOKIE_NAME", "session_id")
+SESSION_HEADER_NAME = os.environ.get("SESSION_HEADER_NAME", "X-Session-ID")
+SESSION_MAX_AGE_HOURS = int(os.environ.get("SESSION_MAX_AGE_HOURS", "24"))
+AUTO_CREATE_SESSION = bool(os.environ.get("AUTO_CREATE_SESSION", True))

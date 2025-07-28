@@ -23,6 +23,8 @@ import { GenerationSettings } from "./components/settings/GenerationSettings";
 import StartPane from "./components/start-pane/StartPane";
 import { Commit } from "./components/commits/types";
 import { createCommit } from "./components/commits/utils";
+import { useSessionTracking, useCodeGenerationTracking, useSettingsTracking } from "./hooks/useSessionTracking";
+import { ActionTypes } from "./lib/session";
 
 function App() {
   const {
@@ -56,8 +58,18 @@ function App() {
     setAppState,
   } = useAppStore();
 
+  // Session tracking hooks
+  const { trackAction } = useSessionTracking();
+  const { 
+    trackCodeGenerationRequest, 
+    trackCodeGenerationComplete,
+    trackDownloadCode,
+    trackCopyCode 
+  } = useCodeGenerationTracking();
+  const { trackSettingsChange } = useSettingsTracking();
+
   // Settings
-  const [settings, setSettings] = usePersistedState<Settings>(
+  const [settings, setSettingsInternal] = usePersistedState<Settings>(
     {
       openAiApiKey: null,
       openAiBaseURL: null,
@@ -72,6 +84,25 @@ function App() {
     },
     "setting"
   );
+
+  // Wrapper for setSettings to track changes
+  const setSettings = (updater: (prev: Settings) => Settings) => {
+    setSettingsInternal((prev) => {
+      const newSettings = updater(prev);
+      
+      // Track changes for each setting that changed
+      Object.keys(newSettings).forEach((key) => {
+        const settingKey = key as keyof Settings;
+        if (prev[settingKey] !== newSettings[settingKey]) {
+          trackSettingsChange(settingKey, newSettings[settingKey], {
+            previousValue: prev[settingKey],
+          });
+        }
+      });
+      
+      return newSettings;
+    });
+  };
 
   const wsRef = useRef<WebSocket>(null);
 
@@ -167,6 +198,15 @@ function App() {
   };
 
   function doGenerateCode(params: CodeGenerationParams) {
+    // Track code generation request
+    trackCodeGenerationRequest({
+      generationType: params.generationType,
+      inputMode: params.inputMode,
+      model: settings.codeGenerationModel,
+      stack: settings.generatedCodeConfig,
+      hasHistory: params.history ? params.history.length > 0 : false,
+    });
+
     // Reset the execution console
     resetExecutionConsoles();
 
@@ -219,10 +259,18 @@ function App() {
       (line, variantIndex) => appendExecutionConsole(variantIndex, line),
       // On cancel
       () => {
+        trackAction(ActionTypes.ERROR, {
+          type: "code_generation_cancelled",
+          generationType: params.generationType,
+        });
         cancelCodeGenerationAndReset(commit);
       },
       // On complete
       () => {
+        trackCodeGenerationComplete({
+          generationType: params.generationType,
+          success: true,
+        });
         setAppState(AppState.CODE_READY);
       }
     );
@@ -230,6 +278,13 @@ function App() {
 
   // Initial version creation
   function doCreate(referenceImages: string[], inputMode: "image" | "video") {
+    // Track screenshot upload
+    trackAction(ActionTypes.SCREENSHOT_UPLOAD, {
+      inputMode,
+      imageCount: referenceImages.length,
+      imageSize: referenceImages[0] ? referenceImages[0].length : 0,
+    });
+
     // Reset any existing state
     reset();
 
