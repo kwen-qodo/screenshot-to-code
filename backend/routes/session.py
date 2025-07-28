@@ -137,10 +137,12 @@ async def get_session_stats():
     
     # Calculate total actions across all sessions
     total_actions = 0
-    for session_id in session_store._sessions:
-        session = session_store.get_session(session_id)
-        if session:
-            total_actions += len(session.user_actions)
+    # Add this method to SessionStore class first:
+    # def get_all_sessions(self) -> List[UserSession]:
+    #     return list(self._sessions.values())
+
+    for session in session_store.get_all_sessions():
+        total_actions += len(session.user_actions)
     
     return SessionStatsResponse(
         active_sessions=active_sessions,
