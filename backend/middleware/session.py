@@ -68,7 +68,7 @@ class SessionMiddleware(BaseHTTPMiddleware):
                     httponly=True,
                     secure=False,  # Set to True in production with HTTPS
                     samesite="lax",
-                    max_age=86400  # 24 hours
+                    max_age=config.SESSION_MAX_AGE_HOURS * 3600  # Convert hours to seconds
                 )
         
         return response
