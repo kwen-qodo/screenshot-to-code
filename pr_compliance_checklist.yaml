@@ -1,0 +1,140 @@
+pr_compliances:
+  - title: "Security & Configuration Management"
+    compliance_label: true
+    objective: "Prevent hardcoded credentials and ensure secure configuration"
+    success_criteria: |
+      - All API keys and sensitive data stored in environment variables
+      - Configuration loaded from .env files or environment
+      - No hardcoded URLs, tokens, or credentials in source code
+      - Environment variables validated at startup
+    failure_criteria: |
+      - Hardcoded API keys, passwords, or tokens in code
+      - Sensitive configuration committed to version control
+      - Missing environment variable validation
+      - Direct use of credentials without proper abstraction
+
+  - title: "AI Streaming & Resource Management"
+    compliance_label: true
+    objective: "Ensure proper handling of AI API streaming and resource cleanup"
+    success_criteria: |
+      - All AI streaming operations have proper error handling
+      - Async clients (OpenAI, Anthropic, etc.) are properly closed
+      - Streaming callbacks handle exceptions gracefully
+      - Resource cleanup implemented in finally blocks or context managers
+    failure_criteria: |
+      - AI streaming without try-catch error handling
+      - Missing client.close() calls for async AI clients
+      - Unhandled exceptions in streaming callbacks
+      - Resource leaks in async operations
+
+  - title: "Import & Module Structure"
+    compliance_label: true
+    objective: "Maintain consistent and reliable import patterns"
+    success_criteria: |
+      - Absolute imports used in Python backend modules
+      - Proper module path resolution
+      - No circular import dependencies
+      - Import statements follow established patterns
+    failure_criteria: |
+      - Relative imports in Python backend code
+      - Circular import dependencies
+      - Inconsistent import patterns across modules
+      - Missing imports causing runtime errors
+
+  - title: "TypeScript Type Safety"
+    compliance_label: true
+    objective: "Maintain strict TypeScript compliance and type safety"
+    success_criteria: |
+      - No TypeScript compilation errors
+      - Minimal use of 'any' types with justification
+      - Proper interface definitions for component props
+      - Type annotations for function parameters and returns
+    failure_criteria: |
+      - TypeScript errors ignored or suppressed without justification
+      - Excessive use of @ts-ignore directives
+      - Missing type definitions for new interfaces
+      - Use of 'any' type without proper justification
+
+  - title: "Async/Await Pattern Compliance"
+    compliance_label: true
+    objective: "Ensure consistent async patterns for AI operations"
+    success_criteria: |
+      - Proper async/await usage for AI API calls
+      - Consistent callback patterns for streaming responses
+      - Error handling in async operations
+      - Proper promise chain management
+    failure_criteria: |
+      - Mixing callback and promise patterns inconsistently
+      - Missing await keywords for async operations
+      - Unhandled promise rejections
+      - Inconsistent async patterns across similar functions
+
+  - title: "Testing Coverage for Critical Features"
+    compliance_label: true
+    objective: "Ensure adequate test coverage for AI and core functionality"
+    success_criteria: |
+      - Tests for all new AI streaming functionality
+      - Error scenario testing for external API integrations
+      - Async test patterns using @pytest.mark.asyncio
+      - Mock implementations for external services
+    failure_criteria: |
+      - Missing tests for new AI model integrations
+      - No error handling tests for critical paths
+      - Untested streaming callback functionality
+      - Missing integration tests for API changes
+
+  - title: "State & Data Management"
+    compliance_label: true
+    objective: "Prevent state mutation and ensure data integrity"
+    success_criteria: |
+      - Immutable state updates in React components
+      - Proper Zustand store patterns
+      - No direct prop or state mutations
+      - Consistent API response structures
+    failure_criteria: |
+      - Direct mutation of props or component state
+      - Inconsistent API response formats
+      - Mutable default arguments in Python functions
+      - State corruption through improper updates
+
+  - title: "WebSocket & Connection Management"
+    compliance_label: true
+    objective: "Ensure proper WebSocket connection handling"
+    success_criteria: |
+      - Proper WebSocket connection lifecycle management
+      - Connection cleanup on component unmount
+      - Error handling for connection failures
+      - Reconnection logic for dropped connections
+    failure_criteria: |
+      - WebSocket connections not properly closed
+      - Missing error handling for connection failures
+      - Memory leaks from uncleaned connections
+      - No reconnection strategy for dropped connections
+
+  - title: "Development & Debug Standards"
+    compliance_label: true
+    objective: "Maintain proper development practices and debug handling"
+    success_criteria: |
+      - Respect for IS_DEBUG_ENABLED and MOCK flags
+      - Proper type hints in critical Python functions
+      - Consistent logging levels and formats
+      - Environment-appropriate configuration
+    failure_criteria: |
+      - Ignoring debug mode flags in production code
+      - Missing type hints in new Python functions
+      - Inconsistent logging practices
+      - Debug code left in production builds
+
+  - title: "API Error Handling & Exceptions"
+    compliance_label: true
+    objective: "Ensure comprehensive error handling for external APIs"
+    success_criteria: |
+      - External API calls wrapped in try-catch blocks with specific exception handling
+      - Error responses use proper HTTP status codes via ResponseEntity
+      - Logging at appropriate levels (ERROR for unrecoverable, WARN for recoverable)
+      - No generic Exception catches without justification
+    failure_criteria: |
+      - Catching Exception or Throwable without re-throwing
+      - Missing error context in logs or exception messages
+      - Returning null instead of throwing exceptions for error cases
+      - HTTP 200 responses for error conditions
