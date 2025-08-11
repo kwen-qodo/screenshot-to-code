@@ -1,34 +1,21 @@
+[pr_reviewer]
+require_ticket_analysis_review = true  # Enable ticket compliance checking (default: true)
+require_ticket_labels = true         # Add compliance labels (default: false)
+require_no_ticket_labels = true   # Label PRs without tickets (default: false)
+
 [github_app]
 handle_push_trigger = true
 
 pr_commands = [
     "/describe",
     "/improve",
-    "/review"
+    "/review",
+    "/compliance",
 ] 
 
 push_commands = [
     "/describe",
     "/improve",
-    "/review"
+    "/review",
+    "/compliance",
 ]
-
-[config]
-enable_custom_labels=true
-
-# For approval via comments
-enable_comment_approval = true 
-
-# For criteria-based auto-approval
-enable_auto_approval = true   
-
-# number between 1 and 5 where 1 is low
-#auto_approve_for_low_review_effort = 2  
-
-# auto-approve if there are no outstanding code suggestions
-auto_approve_for_no_suggestions = true
-
-# auto-approval for /review will not trigger here if no ticket is linked to the PR, 
-# or if the PR is not fully compliant with a linked ticket.
-#ensure_ticket_compliance = true 
-
