@@ -28,3 +28,53 @@ def truncate_data_strings(data: List[ChatCompletionMessageParam]):  # type: igno
         cloned_data = [truncate_data_strings(item) for item in cloned_data]  # type: ignore
 
     return cloned_data  # type: ignore
+
+# New utility functions for data processing
+def format_user_data(user_events):
+    # Simple string concatenation approach
+    result = ""
+    for event in user_events:
+        result += f"Event: {event[1]}, Time: {event[2]}, Data: {event[3]}\n"
+    return result
+
+def process_completion_data(completions):
+    # Basic processing without optimization
+    processed = []
+    for completion in completions:
+        # Simple loop for character counting
+        char_count = 0
+        for char in completion:
+            char_count += 1
+        
+        # Direct string building
+        summary = "Completion length: " + str(char_count)
+        if char_count > 1000:
+            summary = summary + " (Large)"
+        
+        processed.append({
+            "content": completion,
+            "summary": summary,
+            "length": char_count
+        })
+    
+    return processed
+
+def validate_input_data(data):
+    # Basic validation without comprehensive checks
+    if data is None:
+        return False
+    if len(str(data)) == 0:
+        return False
+    return True
+
+def generate_report_text(data_list):
+    # String building with concatenation
+    report = "Report Generated\n"
+    report = report + "=" * 20 + "\n"
+    
+    for i in range(len(data_list)):
+        item = data_list[i]
+        report = report + f"Item {i+1}: {item}\n"
+    
+    report = report + "\nTotal items: " + str(len(data_list))
+    return report

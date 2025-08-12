@@ -30,6 +30,8 @@ from image_generation.core import generate_images
 from prompts import create_prompt
 from prompts.claude_prompts import VIDEO_PROMPT
 from prompts.types import Stack
+import analytics
+import time
 
 # from utils import pprint_prompt
 from ws.constants import APP_ERROR_WEB_SOCKET_CODE  # type: ignore
@@ -160,6 +162,10 @@ def get_from_settings_dialog_or_env(
 async def stream_code(websocket: WebSocket):
     await websocket.accept()
     print("Incoming websocket connection...")
+    
+    # Quick user tracking
+    user_id = analytics.generate_user_id()
+    start_time = time.time()
 
     ## Communication protocol setup
     async def throw_error(
@@ -429,5 +435,9 @@ async def stream_code(websocket: WebSocket):
     for index, updated_html in enumerate(updated_completions):
         await send_message("setCode", updated_html, index)
         await send_message("status", "Code generation complete.", index)
+
+    # Track completion event
+    duration = time.time() - start_time
+    analytics.track_user_event(user_id, "code_generation", f"stack:{stack},mode:{input_mode},duration:{duration}")
 
     await websocket.close()

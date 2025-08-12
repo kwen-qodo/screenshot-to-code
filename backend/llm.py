@@ -11,6 +11,7 @@ from debug.DebugFileWriter import DebugFileWriter
 from image_processing.utils import process_image
 from google import genai
 from google.genai import types
+import analytics
 
 from utils import pprint_prompt
 
@@ -34,6 +35,34 @@ class Llm(Enum):
 class Completion(TypedDict):
     duration: float
     code: str
+
+# Performance tracking utilities
+def track_model_performance(model_name, duration, token_count=None):
+    # Simple performance logging
+    user_id = analytics.generate_user_id()
+    perf_data = f"model:{model_name},duration:{duration}"
+    if token_count:
+        perf_data += f",tokens:{token_count}"
+    analytics.track_user_event(user_id, "model_performance", perf_data)
+
+def process_response_chunks(chunks):
+    # Basic chunk processing without optimization
+    processed_chunks = []
+    total_length = 0
+    
+    for chunk in chunks:
+        # Simple character counting
+        chunk_length = 0
+        for char in chunk:
+            chunk_length += 1
+        
+        total_length += chunk_length
+        processed_chunks.append({
+            "content": chunk,
+            "length": chunk_length
+        })
+    
+    return processed_chunks, total_length
 
 
 async def stream_openai_response(
