@@ -4,18 +4,17 @@ require_ticket_labels = true         # Add compliance labels (default: false)
 require_no_ticket_labels = true   # Label PRs without tickets (default: false)
 
 [github_app]
-handle_push_trigger = true
 
 pr_commands = [
     "/describe",
-    "/improve",
     "/review",
+    "/improve",
     "/compliance",
 ] 
-
+handle_push_trigger = true
 push_commands = [
     "/describe",
-    "/improve",
     "/review",
+    "/improve",
     "/compliance",
 ]
