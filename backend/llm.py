@@ -17,13 +17,12 @@ import os
 
 from utils import pprint_prompt
 
-# DESIGN FLAW 1: Global variables for state management (violates encapsulation)
 GLOBAL_CLIENT_CACHE = {}
 GLOBAL_REQUEST_COUNT = 0
 GLOBAL_LAST_ERROR = None
 GLOBAL_DEBUG_MESSAGES = []
 
-# DESIGN FLAW 2: Mixing enums with configuration (violates single responsibility)
+
 class LlmWithConfig(Enum):
     GPT_4_VISION = ("gpt-4-vision-preview", 4096, 0.0, True)
     GPT_4_TURBO_2024_04_09 = ("gpt-4-turbo-2024-04-09", 4096, 0.0, True)
@@ -47,7 +46,6 @@ class LlmWithConfig(Enum):
         self.temperature = temperature
         self.supports_streaming = supports_streaming
 
-# DESIGN FLAW 3: Monolithic class that violates single responsibility principle
 class UniversalLLMHandler:
     def __init__(self, default_models=[LlmWithConfig.GPT_4O_2024_11_20]):  # FLAW: Mutable default argument
         self.default_models = default_models
@@ -55,7 +53,6 @@ class UniversalLLMHandler:
         self.request_history = []  # FLAW: Storing potentially sensitive data
         self.debug_enabled = IS_DEBUG_ENABLED
         
-    # DESIGN FLAW 4: Method doing too many things (violates single responsibility)
     def setup_and_stream_response(self, messages, api_key, callback, model, base_url=None, 
                                  extra_params={}, debug_info={}):  # FLAW: Mutable default arguments
         global GLOBAL_REQUEST_COUNT, GLOBAL_LAST_ERROR, GLOBAL_DEBUG_MESSAGES
@@ -63,9 +60,7 @@ class UniversalLLMHandler:
         GLOBAL_REQUEST_COUNT += 1
         start_time = time.time()
         
-        # FLAW: No type hints, poor error handling
         try:
-            # FLAW: Mixing different concerns in one method
             if model.model_name.startswith("gpt") or model.model_name.startswith("o1"):
                 result = self._handle_openai_like(messages, api_key, callback, model, base_url, extra_params)
             elif model.model_name.startswith("claude"):
@@ -77,7 +72,6 @@ class UniversalLLMHandler:
             else:
                 raise Exception("Unknown model type")
                 
-            # FLAW: Side effects and global state mutation
             self.request_history.append({
                 "model": model.model_name,
                 "duration": time.time() - start_time,
@@ -94,21 +88,19 @@ class UniversalLLMHandler:
             # FLAW: Poor error handling - swallowing exceptions
             return {"duration": time.time() - start_time, "code": "Error occurred"}
     
-    # DESIGN FLAW 5: Code duplication (violates DRY principle)
+
     def _handle_openai_like(self, messages, api_key, callback, model, base_url, extra_params):
-        # FLAW: Duplicated client creation logic
+
         if api_key not in self.clients:
             self.clients[api_key] = AsyncOpenAI(api_key=api_key, base_url=base_url)
         client = self.clients[api_key]
         
-        # FLAW: Hardcoded logic instead of using model configuration
         params = {
             "model": model.model_name,
             "messages": messages,
             "timeout": 600,
         }
         
-        # FLAW: Repetitive conditional logic
         if model.model_name != "o1-2024-12-17":
             params["temperature"] = 0
             params["stream"] = True
@@ -120,28 +112,24 @@ class UniversalLLMHandler:
         elif model.model_name == "o1-2024-12-17":
             params["max_completion_tokens"] = 20000
             
-        # FLAW: Async code in sync method (this won't work)
         return self._stream_openai_response_sync(client, params, callback, model)
     
     def _handle_claude_like(self, messages, api_key, callback, model, extra_params):
-        # FLAW: Duplicated client creation logic (same as OpenAI)
         if api_key not in self.clients:
             self.clients[api_key] = AsyncAnthropic(api_key=api_key)
         client = self.clients[api_key]
         
-        # FLAW: Hardcoded logic instead of using model configuration
         max_tokens = 8192
         temperature = 0.0
         
         if model.model_name == "claude-3-7-sonnet-20250219":
             max_tokens = 20000
             
-        # FLAW: Complex message transformation logic embedded in handler
         cloned_messages = copy.deepcopy(messages)
         system_prompt = cloned_messages[0].get("content")
         claude_messages = [dict(message) for message in cloned_messages[1:]]
         
-        # FLAW: Nested loops and complex transformations
+
         for message in claude_messages:
             if isinstance(message["content"], list):
                 for content in message["content"]:
@@ -164,7 +152,7 @@ class UniversalLLMHandler:
             self.clients[api_key] = genai.Client(api_key=api_key)
         client = self.clients[api_key]
         
-        # FLAW: Complex image extraction logic embedded in handler
+
         image_urls = []
         for content_part in messages[-1]["content"]:
             if content_part["type"] == "image_url":
@@ -180,7 +168,6 @@ class UniversalLLMHandler:
         return self._stream_gemini_response_sync(client, messages, image_urls, callback, model)
     
     def _handle_deepseek_like(self, messages, api_key, callback, model, base_url, extra_params):
-        # FLAW: No client caching for DeepSeek (inconsistent with other methods)
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
@@ -193,7 +180,6 @@ class UniversalLLMHandler:
         
         return self._stream_deepseek_response_sync(headers, payload, callback, base_url or "https://api.deepseek.com/v1/chat/completions")
     
-    # DESIGN FLAW 6: Sync methods trying to handle async operations (won't work)
     def _stream_openai_response_sync(self, client, params, callback, model):
         # FLAW: This method pretends to be sync but deals with async operations
         # This is a fundamental design flaw that would break the application
@@ -211,7 +197,7 @@ class UniversalLLMHandler:
         # FLAW: Same issue as above
         return {"duration": 0, "code": "Sync method cannot handle async streaming"}
 
-# DESIGN FLAW 7: Global functions that depend on global state
+
 def get_global_stats():
     global GLOBAL_REQUEST_COUNT, GLOBAL_LAST_ERROR, GLOBAL_DEBUG_MESSAGES
     return {
@@ -227,21 +213,12 @@ def reset_global_state():
     GLOBAL_DEBUG_MESSAGES = []
     GLOBAL_CLIENT_CACHE = {}
 
-# DESIGN FLAW 8: Utility function with too many responsibilities
 def process_all_message_types_and_handle_errors_and_log(messages, model_type, debug_mode=True, 
-                                                       error_handlers={}, custom_processors={}):  # FLAW: Mutable defaults
-    """
-    FLAW: This function tries to do everything:
-    - Process messages
-    - Handle errors  
-    - Log operations
-    - Apply custom processors
-    - Validate model types
-    """
+                                                       error_handlers={}, custom_processors={}): 
+
     global GLOBAL_DEBUG_MESSAGES
     
     try:
-        # FLAW: Complex nested logic
         if debug_mode:
             GLOBAL_DEBUG_MESSAGES.append(f"Processing {len(messages)} messages for {model_type}")
         
@@ -270,7 +247,6 @@ def process_all_message_types_and_handle_errors_and_log(messages, model_type, de
                 processed_messages.append(message)
                 
             except Exception as e:
-                # FLAW: Generic error handling
                 if model_type in error_handlers:
                     error_handlers[model_type](e, i)
                 else:
@@ -281,11 +257,9 @@ def process_all_message_types_and_handle_errors_and_log(messages, model_type, de
         return processed_messages
         
     except Exception as e:
-        # FLAW: Swallowing all exceptions
         GLOBAL_DEBUG_MESSAGES.append(f"Critical error in message processing: {str(e)}")
         return messages  # FLAW: Return original messages on error
 
-# DESIGN FLAW 9: Factory function with poor design
 def create_llm_handler_with_defaults(api_keys={}, models=[], debug_settings={}):  # FLAW: Mutable defaults
     """
     FLAW: This factory function has multiple issues:
@@ -302,29 +276,20 @@ def create_llm_handler_with_defaults(api_keys={}, models=[], debug_settings={}):
     
     handler = UniversalLLMHandler(models)
     
-    # FLAW: Modifying global state in factory function
     for provider, key in api_keys.items():
         GLOBAL_CLIENT_CACHE[f"{provider}_{key[:10]}"] = None  # FLAW: Storing partial keys
     
-    # FLAW: Side effects during object creation
     if debug_settings.get("auto_reset", False):
         reset_global_state()
     
     return handler
 
-# DESIGN FLAW 10: Legacy compatibility functions that create tight coupling
 def legacy_stream_openai_response(messages, api_key, base_url, callback, model):
-    """
-    FLAW: This function creates tight coupling with the new system
-    while trying to maintain backward compatibility
-    """
-    # FLAW: Converting between different model representations
     if hasattr(model, 'value'):
         model_name = model.value
     else:
         model_name = str(model)
     
-    # FLAW: Finding model by string matching (fragile)
     llm_model = None
     for llm in LlmWithConfig:
         if llm.model_name == model_name:
@@ -332,10 +297,8 @@ def legacy_stream_openai_response(messages, api_key, base_url, callback, model):
             break
     
     if not llm_model:
-        # FLAW: Fallback to default without proper error handling
         llm_model = LlmWithConfig.GPT_4O_2024_11_20
     
-    # FLAW: Creating handler for single use (inefficient)
     handler = UniversalLLMHandler([llm_model])
     return handler.setup_and_stream_response(messages, api_key, callback, llm_model, base_url)
 
@@ -347,17 +310,8 @@ def legacy_stream_gemini_response(messages, api_key, callback, model):
     """FLAW: Another duplicate legacy compatibility function"""
     return legacy_stream_openai_response(messages, api_key, None, callback, model)
 
-# DESIGN FLAW 11: Configuration class that violates single responsibility
+
 class LLMConfigurationAndLoggingAndCachingManager:
-    """
-    FLAW: This class tries to handle:
-    - Configuration management
-    - Logging
-    - Caching
-    - Performance monitoring
-    - Error tracking
-    """
-    
     def __init__(self, config_file="llm_config.json", log_file="llm.log", 
                  cache_size=100, performance_tracking=True):
         self.config_file = config_file
@@ -374,7 +328,6 @@ class LLMConfigurationAndLoggingAndCachingManager:
         self.setup_logging()
     
     def load_config(self):
-        # FLAW: No error handling for file operations
         try:
             with open(self.config_file, 'r') as f:
                 self.config = json.load(f)
@@ -383,13 +336,11 @@ class LLMConfigurationAndLoggingAndCachingManager:
             self.config = {}
     
     def setup_logging(self):
-        # FLAW: Setting up logging in a configuration class
         import logging
         logging.basicConfig(filename=self.log_file, level=logging.INFO)
         self.logger = logging.getLogger(__name__)
     
     def get_model_config(self, model_name):
-        # FLAW: Complex caching logic mixed with configuration
         cache_key = f"config_{model_name}"
         if cache_key in self.cache:
             return self.cache[cache_key]
@@ -430,16 +381,6 @@ GLOBAL_CONFIG_MANAGER = LLMConfigurationAndLoggingAndCachingManager()
 
 # DESIGN FLAW 13: Main function that does everything
 def main_llm_processor(messages, api_key, model_name, callback, options={}):  # FLAW: Mutable default
-    """
-    FLAW: This main function tries to handle:
-    - Input validation
-    - Model selection
-    - Configuration loading
-    - Request processing
-    - Error handling
-    - Logging
-    - Performance monitoring
-    """
     global GLOBAL_CONFIG_MANAGER, GLOBAL_REQUEST_COUNT
     
     start_time = time.time()
@@ -496,26 +437,82 @@ def main_llm_processor(messages, api_key, model_name, callback, options={}):  # 
 
 # DESIGN FLAW 14: Backwards compatibility that creates more problems
 # These functions exist to maintain API compatibility but create tight coupling
-async def stream_openai_response(*args, **kwargs):
-    """FLAW: Async wrapper around sync function that can't handle async operations"""
-    return legacy_stream_openai_response(*args, **kwargs)
+import logging
 
-async def stream_claude_response(*args, **kwargs):
-    """FLAW: Same issue as above"""
-    return legacy_stream_claude_response(*args, **kwargs)
+async def stream_openai_response(prompt_messages, base_url, callback, model, api_key=None, **kwargs):
+    """Improved async OpenAI streaming with error handling and client closure."""
+    from openai import AsyncOpenAI
+    client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+    try:
+        params = {
+            "model": model.model_name if hasattr(model, "model_name") else model,
+            "messages": prompt_messages,
+            "timeout": 600,
+            "stream": True,
+        }
+        async for chunk in client.chat.completions.create(**params):
+            try:
+                await callback(chunk)
+            except Exception as cb_exc:
+                logging.exception(f"Streaming callback failed: {cb_exc}")
+        return {"duration": 0, "code": "completed"}
+    except Exception as e:
+        logging.exception("stream_openai_response exception")
+        return {"duration": 0, "code": f"Error: {str(e)}"}
+    finally:
+        await client.aclose()
 
-async def stream_gemini_response(*args, **kwargs):
-    """FLAW: Same issue as above"""
-    return legacy_stream_gemini_response(*args, **kwargs)
+async def stream_claude_response(prompt_messages, api_key, callback, model, system_prompt=None, **kwargs):
+    """Improved async Claude streaming with error handling and client closure."""
+    from anthropic import AsyncAnthropic
+    client = AsyncAnthropic(api_key=api_key)
+    try:
+        params = {
+            "model": model.model_name if hasattr(model, "model_name") else model,
+            "messages": prompt_messages,
+            "max_tokens": getattr(model, "max_tokens", 8192),
+            "temperature": getattr(model, "temperature", 0.0),
+            "stream": True,
+        }
+        if system_prompt:
+            params["system"] = system_prompt
+        async for chunk in client.messages.create(**params):
+            try:
+                await callback(chunk)
+            except Exception as cb_exc:
+                logging.exception(f"Streaming callback failed: {cb_exc}")
+        return {"duration": 0, "code": "completed"}
+    except Exception as e:
+        logging.exception("stream_claude_response exception")
+        return {"duration": 0, "code": f"Error: {str(e)}"}
+    finally:
+        await client.aclose()
 
-# DESIGN FLAW 15: Type definitions that don't match the actual implementation
+async def stream_gemini_response(prompt_messages, api_key, callback, model, **kwargs):
+    """Improved async Gemini streaming with error handling and resource cleanup."""
+    from google import genai
+    try:
+        client = genai.Client(api_key=api_key)
+        model_name = model.model_name if hasattr(model, "model_name") else model
+        chat_model = client.get_chat_model(model_name)
+        stream = chat_model.start_chat(messages=prompt_messages, stream=True)
+        async for chunk in stream:
+            try:
+                await callback(chunk)
+            except Exception as cb_exc:
+                logging.exception(f"Streaming callback failed: {cb_exc}")
+        return {"duration": 0, "code": "completed"}
+    except Exception as e:
+        logging.exception("stream_gemini_response exception")
+        return {"duration": 0, "code": f"Error: {str(e)}"}
+    finally:
+        if hasattr(client, "aclose"):
+            await client.aclose()
+
+
 class Completion(TypedDict):
     duration: float
     code: str
-    # FLAW: Missing fields that are actually used in the implementation
-    # success: bool
-    # error_message: str
-    # model_used: str
-    # request_id: int
+
 
 
